@@ -30,5 +30,6 @@ selected_db = DATABASES.get(user_choice, "redis")  # Default to "redis" if input
 os.environ["EMBEDDING_MODEL"] = selected_model
 
 # Run scripts
-subprocess.run(["python", f"src/ingest_{selected_db}.py"])
-subprocess.run(["python", f"src/search_{selected_db}.py"])
+# Run scripts
+subprocess.run(["python", f"src/ingest_{selected_db}.py", "--embedding_model", selected_model])
+subprocess.run(["python", f"src/search_{selected_db}.py", "--embedding_model", selected_model])
