@@ -10,6 +10,11 @@ DATABASES = {
     'redis': 'redis',
     'chroma': 'chroma'
 }
+LLM_MODELS = {
+    "mistral": "mistral:latest",
+    "llama2": "llama2",
+    "deepseek": "deepseek-r1"
+}
 
 # Select embedding model
 print("Select an embedding model:")
@@ -24,12 +29,19 @@ print("Select a database:")
 for key in DATABASES:
     print(f"{key}")
 user_choice = input("Enter database key: ").strip().lower()
-selected_db = DATABASES.get(user_choice, "redis")  # Default to "redis" if input is invalid
+selected_db = DATABASES.get(user_choice, DATABASES["redis"])  # Default to "redis" if input is invalid
+
+# Select LLM
+print("Select a database:")
+for key in LLM_MODELS:
+    print(f"{key}")
+user_choice = input("Enter llm key: ").strip().lower()
+selected_llm = LLM_MODELS.get(user_choice, LLM_MODELS["mistral"])  # Default to "mistral:latest" if input is invalid
 
 # Set environment variable
 os.environ["EMBEDDING_MODEL"] = selected_model
+os.environ["LLM_MODEL"] = selected_llm
 
 # Run scripts
-# Run scripts
-subprocess.run(["python", f"src/ingest_{selected_db}.py", "--embedding_model", selected_model])
-subprocess.run(["python", f"src/search_{selected_db}.py", "--embedding_model", selected_model])
+subprocess.run(["python", os.path.join("src", f"ingest_{selected_db}.py"), "--embedding_model", selected_model])
+subprocess.run(["python", os.path.join("src", f"search_{selected_db}.py"), "--embedding_model", selected_model])

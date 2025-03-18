@@ -6,7 +6,7 @@ import fitz
 from sentence_transformers import SentenceTransformer
 
 # Initialize ChromaDB client
-db = chromadb.PersistentClient(path="./chroma_db")
+db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
 collection = db.get_or_create_collection(name="embedding_index")
 
 VECTOR_DIM = 768
@@ -82,7 +82,7 @@ def query_chroma(query_text: str, k=5):
 
 def main():
     clear_chroma_store()
-    process_pdfs("data/")
+    process_pdfs(os.path.join("data"))
     print("\n---Done processing PDFs---\n")
     query_chroma("What is the capital of France?")
 

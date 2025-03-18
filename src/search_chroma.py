@@ -13,7 +13,12 @@ VECTOR_DIM = 768
 
 # Get embedding model from environment variable
 CURRENT_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+
+# Get LLM model from environment variable
+LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
+
 print(f"Using model: {CURRENT_MODEL}")
+print(f"Using LLM: {LLM_MODEL}")
 
 def get_embedding(text: str, model: str = CURRENT_MODEL) -> list:
     if "sentence-transformers" in model or "instructor" in model:
@@ -65,7 +70,7 @@ Query: {query}
 Answer:"""
     
     response = ollama.chat(
-        model="mistral:latest", messages=[{"role": "user", "content": prompt}]
+        model=LLM_MODEL, messages=[{"role": "user", "content": prompt}]
     )
     
     return response["message"]["content"]

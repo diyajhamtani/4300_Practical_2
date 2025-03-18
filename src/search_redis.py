@@ -1,5 +1,6 @@
 import redis
 import json
+import os
 import numpy as np
 import argparse
 from sentence_transformers import SentenceTransformer
@@ -9,17 +10,25 @@ from redis.commands.search.field import VectorField, TextField
 
 
 # Initialize Redis client
-redis_client = redis.StrictRedis(host="localhost", port=6380, decode_responses=True)
+redis_client = redis.StrictRedis(host="localhost", port=6379, decode_responses=True)
 
 VECTOR_DIM = 768
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
 
+# Get LLM model from environment variable
+LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
+
+print(f"Using LLM: {LLM_MODEL}")
 
 def get_embedding(text: str, model: str) -> list:
-    response = ollama.embeddings(model=model, prompt=text)
-    return response["embedding"]
+    if "sentence-transformers" in model or "instructor" in model:
+        transformer = SentenceTransformer(model)
+        return transformer.encode(text).tolist()
+    else:
+        response = ollama.embeddings(model=model, prompt=text)
+        return response["embedding"]
 
 
 def search_embeddings(query, embedding_model, top_k=3):
@@ -82,7 +91,7 @@ Query: {query}
 Answer:"""
 
     response = ollama.chat(
-        model="mistral:latest", messages=[{"role": "user", "content": prompt}]
+        model=LLM_MODEL, messages=[{"role": "user", "content": prompt}]
     )
 
     return response["message"]["content"]

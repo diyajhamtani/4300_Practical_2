@@ -6,9 +6,10 @@ import os
 import fitz
 import ollama
 from redis.commands.search.query import Query
+from sentence_transformers import SentenceTransformer
 
 # Initialize Redis connection
-redis_client = redis.Redis(host="localhost", port=6380, db=0)
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 VECTOR_DIM = 768
 INDEX_NAME = "embedding_index"
@@ -39,8 +40,12 @@ def create_hnsw_index():
 
 
 def get_embedding(text: str, model: str) -> list:
-    response = ollama.embeddings(model=model, prompt=text)
-    return response["embedding"]
+    if "sentence-transformers" in model or "instructor" in model:
+        transformer = SentenceTransformer(model)
+        return transformer.encode(text).tolist()
+    else:
+        response = ollama.embeddings(model=model, prompt=text)
+        return response["embedding"]
 
 
 def store_embedding(file: str, page: str, chunk: str, embedding: list):
@@ -117,7 +122,7 @@ def main():
 
     clear_redis_store()
     create_hnsw_index()
-    process_pdfs("data/", args.embedding_model)
+    process_pdfs(os.path.join("data"), args.embedding_model)
     print("\n---Done processing PDFs---\n")
     query_redis("What is the capital of France?", args.embedding_model)
 
