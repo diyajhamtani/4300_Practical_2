@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 # Initialize Redis connection
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
-VECTOR_DIM = 768
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
