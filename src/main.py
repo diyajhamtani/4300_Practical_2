@@ -2,9 +2,9 @@ import os
 import subprocess
 
 EMBEDDING_MODELS = {
-    "minilm": "sentence-transformers/all-MiniLM-L6-v2",
-    "mpnet": "sentence-transformers/all-mpnet-base-v2",
-    "instructor": "hkunlp/instructor-xl"
+    "minilm": ["sentence-transformers/all-MiniLM-L6-v2", 384],
+    "mpnet": ["sentence-transformers/all-mpnet-base-v2", 768],
+    "instructor": ["hkunlp/instructor-xl", 768]
 }
 DATABASES = {
     'redis': 'redis',
@@ -21,7 +21,7 @@ print("Select an embedding model:")
 for key, model in EMBEDDING_MODELS.items():
     print(f"{key}: {model}")
 user_choice = input("Enter model key: ").strip().lower()
-selected_model = EMBEDDING_MODELS.get(user_choice, "minilm")
+selected_model, selected_model_vector_dim = EMBEDDING_MODELS.get(user_choice, EMBEDDING_MODELS["minilm"])
 print(f"Using model: {selected_model}")
 
 # Select database
@@ -41,6 +41,7 @@ selected_llm = LLM_MODELS.get(user_choice, LLM_MODELS["mistral"])  # Default to 
 # Set environment variable
 os.environ["EMBEDDING_MODEL"] = selected_model
 os.environ["LLM_MODEL"] = selected_llm
+os.environ["VECTOR_DIM"] = str(selected_model_vector_dim)
 
 # Run scripts
 subprocess.run(["python", os.path.join("src", f"ingest_{selected_db}.py")])

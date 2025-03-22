@@ -13,7 +13,7 @@ redis_client = redis.Redis(host="localhost", port=6380, db=0)
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 print(f"Using Embedding Model: {EMBEDDING_MODEL}")
 
-VECTOR_DIM = 384
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
