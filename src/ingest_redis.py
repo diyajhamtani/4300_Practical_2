@@ -10,6 +10,9 @@ from sentence_transformers import SentenceTransformer
 # Initialize Redis connection
 redis_client = redis.Redis(host="localhost", port=6380, db=0)
 
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+print(f"Using Embedding Model: {EMBEDDING_MODEL}")
+
 VECTOR_DIM = 384
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
@@ -130,9 +133,9 @@ def query_redis(query_text: str):
 def main():
     clear_redis_store()
     create_hnsw_index()
-    process_pdfs(os.path.join("data"), args.embedding_model)
+    process_pdfs(os.path.join("data"), EMBEDDING_MODEL)
     print("\n---Done processing PDFs---\n")
-    query_redis("What is the capital of France?", args.embedding_model)
+    query_redis("What is the capital of France?", EMBEDDING_MODEL)
 
 
 if __name__ == "__main__":
