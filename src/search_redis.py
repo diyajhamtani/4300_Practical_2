@@ -17,10 +17,13 @@ INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
 
-# Get LLM model from environment variable
+# Get LLM and Embedding models from environment variables
 LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
 
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mistral:latest")
+
 print(f"Using LLM: {LLM_MODEL}")
+print(f"Using Embedding Model: {EMBEDDING_MODEL}")
 
 def get_embedding(text: str, model: str) -> list:
     if "sentence-transformers" in model or "instructor" in model:
@@ -115,8 +118,4 @@ def interactive_search(embedding_model):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="RAG Search with Redis")
-    parser.add_argument("--embedding_model", type=str, required=True, help="Specify the embedding model")
-    args = parser.parse_args()
-
-    interactive_search(args.embedding_model)
+    interactive_search(EMBEDDING_MODEL)
