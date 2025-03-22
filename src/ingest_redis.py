@@ -16,6 +16,7 @@ INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
 
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 def clear_redis_store():
     print("Clearing existing Redis store...")
@@ -116,15 +117,11 @@ def query_redis(query_text: str, embedding_model):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process PDFs and query Redis with embeddings")
-    parser.add_argument("--embedding_model", type=str, required=True, help="Specify the embedding model")
-    args = parser.parse_args()
-
     clear_redis_store()
     create_hnsw_index()
-    process_pdfs(os.path.join("data"), args.embedding_model)
+    process_pdfs(os.path.join("data"), EMBEDDING_MODEL)
     print("\n---Done processing PDFs---\n")
-    query_redis("What is the capital of France?", args.embedding_model)
+    query_redis("What is the capital of France?", EMBEDDING_MODEL)
 
 
 if __name__ == "__main__":
