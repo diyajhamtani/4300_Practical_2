@@ -11,15 +11,8 @@ collection = db.get_or_create_collection(name="embedding_index")
 
 VECTOR_DIM = 768
 
-# Available embedding models
-EMBEDDING_MODELS = {
-    "minilm": "sentence-transformers/all-MiniLM-L6-v2",
-    "mpnet": "sentence-transformers/all-mpnet-base-v2",
-    "instructor": "hkunlp/instructor-xl"
-}
-
 # Get embedding model from environment variable
-CURRENT_MODEL = os.getenv("EMBEDDING_MODEL", EMBEDDING_MODELS["minilm"])
+CURRENT_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 print(f"Using model: {CURRENT_MODEL}")
 
 def clear_chroma_store():

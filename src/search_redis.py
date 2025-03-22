@@ -11,6 +11,7 @@ from redis.commands.search.field import VectorField, TextField
 
 # Initialize Redis client
 redis_client = redis.StrictRedis(host="localhost", port=6379, decode_responses=True)
+redis_client = redis.StrictRedis(host="localhost", port=6380, decode_responses=True)
 
 VECTOR_DIM = 768
 INDEX_NAME = "embedding_index"
@@ -19,6 +20,7 @@ DISTANCE_METRIC = "COSINE"
 
 # Get LLM model from environment variable
 LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 print(f"Using LLM: {LLM_MODEL}")
 
@@ -68,7 +70,7 @@ def search_embeddings(query, embedding_model, top_k=3):
         return []
 
 
-def generate_rag_response(query, context_results, embedding_model):
+def generate_rag_response(query, context_results, llm_model=LLM_MODEL):
     context_str = "\n".join(
         [
             f"From {result.get('file', 'Unknown file')} (page {result.get('page', 'Unknown page')}, chunk {result.get('chunk', 'Unknown chunk')}) "
@@ -106,17 +108,14 @@ def interactive_search(embedding_model):
 
         if query.lower() == "exit":
             break
-
+        
         context_results = search_embeddings(query, embedding_model)
         response = generate_rag_response(query, context_results, embedding_model)
 
         print("\n--- Response ---")
         print(response)
+    
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="RAG Search with Redis")
-    parser.add_argument("--embedding_model", type=str, required=True, help="Specify the embedding model")
-    args = parser.parse_args()
-
-    interactive_search(args.embedding_model)
+    interactive_search(EMBEDDING_MODEL)
