@@ -8,8 +8,9 @@ import argparse
 import ollama  
 from pymilvus import Collection, FieldSchema, DataType, CollectionSchema, utility
 
-VECTOR_DIM = 768
-COLLECTION_NAME = "embedding_collection"
+VECTOR_DIM = 384
+COLLECTION_NAME = "embedding_co" \
+"llection"
 DISTANCE_METRIC = "COSINE"
 
 # Available embedding models
@@ -64,6 +65,15 @@ def store_embedding(file: str, page: str, chunk: str, embedding: list, text: str
         [embedding],  # Embedding vector
     ]
     collection.insert(data)
+
+    collection.create_index(
+    field_name="embedding",
+    index_params={
+        "index_type": "IVF_FLAT",
+        "metric_type": DISTANCE_METRIC,
+        "params": {"nlist": 128}
+    }
+)
     print(f"Stored embedding for: {chunk}")
 
 # def preprocess_text(doc):
@@ -123,10 +133,11 @@ def query_milvus(query_text: str, embedding_model):
         param=search_params,
         limit=5,  # Return top 5 most similar vectors
         expr=None,  # No expression filter
+        output_fields=["text"]
     )
     
     for result in search_result[0]:
-        print(f"Text: {result.entity['text']} \n Distance: {result.distance}\n")
+        print(f"Text: {result.entity.text} \n Distance: {result.distance}\n")
 
 def main():
 
@@ -134,11 +145,11 @@ def main():
     create_milvus_collection()
 
     # Process PDFs and store embeddings in Milvus
-    process_pdfs(os.path.join("data"), EMBEDDING_MODELS["mpnet"])
+    process_pdfs(os.path.join("data"), EMBEDDING_MODELS["minilm"])
     print("\n---Done processing PDFs---\n")
 
     # Query Milvus to find similar documents
-    query_milvus("What is the capital of France?", EMBEDDING_MODELS["mpnet"])
+    query_milvus("What is the capital of France?", EMBEDDING_MODELS["minilm"])
 
 if __name__ == "__main__":
     main()
