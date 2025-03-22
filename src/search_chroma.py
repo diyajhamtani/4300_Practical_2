@@ -1,5 +1,6 @@
 import chromadb
 import json
+import time
 import numpy as np
 import os
 from sentence_transformers import SentenceTransformer
@@ -15,7 +16,8 @@ VECTOR_DIM = 768
 CURRENT_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 # Get LLM model from environment variable
-LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
+# LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
+LLM_MODEL = "mistral:latest"
 
 print(f"Using model: {CURRENT_MODEL}")
 print(f"Using LLM: {LLM_MODEL}")
@@ -47,7 +49,7 @@ def search_embeddings(query, top_k=3):
     
     return top_results
 
-def generate_rag_response(query, context_results):
+def generate_rag_response(query, context_results, llm_model=LLM_MODEL):
     context_str = "\n".join(
         [
             f"From {result.get('file', 'Unknown file')} (page {result.get('page', 'Unknown page')}, chunk {result.get('chunk', 'Unknown chunk')}) "

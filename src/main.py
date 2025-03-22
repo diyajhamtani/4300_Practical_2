@@ -21,7 +21,7 @@ print("Select an embedding model:")
 for key, model in EMBEDDING_MODELS.items():
     print(f"{key}: {model}")
 user_choice = input("Enter model key: ").strip().lower()
-selected_model = EMBEDDING_MODELS.get(user_choice, EMBEDDING_MODELS["minilm"])
+selected_model = EMBEDDING_MODELS.get(user_choice, "minilm")
 print(f"Using model: {selected_model}")
 
 # Select database
@@ -32,7 +32,7 @@ user_choice = input("Enter database key: ").strip().lower()
 selected_db = DATABASES.get(user_choice, DATABASES["redis"])  # Default to "redis" if input is invalid
 
 # Select LLM
-print("Select a database:")
+print("Select an LLM:")
 for key in LLM_MODELS:
     print(f"{key}")
 user_choice = input("Enter llm key: ").strip().lower()
@@ -43,5 +43,5 @@ os.environ["EMBEDDING_MODEL"] = selected_model
 os.environ["LLM_MODEL"] = selected_llm
 
 # Run scripts
-subprocess.run(["python", os.path.join("src", f"ingest_{selected_db}.py"), "--embedding_model", selected_model])
-subprocess.run(["python", os.path.join("src", f"search_{selected_db}.py"), "--embedding_model", selected_model])
+subprocess.run(["python", os.path.join("src", f"ingest_{selected_db}.py")])
+subprocess.run(["python", os.path.join("src", f"search_{selected_db}.py")])
