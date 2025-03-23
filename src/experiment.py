@@ -33,6 +33,16 @@ DATABASES = {
     'milvus': 'milvus'
 }
 
+def get_memory():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / (1024 * 1024) # convert to mb
+
+def get_memory_difference(starting_memory, label=""):
+    ending_memory = get_memory()
+    difference = ending_memory - starting_memory
+    print(f"[{label}] Memory Difference: {difference} MB")
+    return difference
+
 def use_redis(embedding_model, llm_model):
     start_time = time.time()
     subprocess.run(["python", os.path.join("src", "ingest_redis.py")], check=True)
@@ -57,16 +67,6 @@ def use_redis(embedding_model, llm_model):
             all_rows.append(["redis", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time])
 
     return all_rows
-
-def get_memory():
-    process = psutil.Process(os.getpid())
-    return process.memory_info().rss / (1024 * 1024) # convert to mb
-
-def get_memory_difference(starting_memory, label=""):
-    ending_memory = get_memory()
-    difference = ending_memory - starting_memory
-    print(f"[{label}] Memory Difference: {difference} MB")
-    return difference
 
 def use_chroma(embedding_model, llm_model):
     start_time = time.time()
