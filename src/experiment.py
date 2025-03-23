@@ -119,7 +119,7 @@ def main():
 
     finally:
         # Ensure CSV is always saved even if an error occurs
-        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Response"])
+        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Response", "ingesting_time"])
         df.to_csv("results.csv", index=False)
         print("Results saved to results.csv")
 
