@@ -5,11 +5,6 @@ import pandas as pd
 import search_chroma
 import search_redis
 import search_milvus
-from concurrent.futures import ThreadPoolExecutor
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 queries = [
     "What is binary search?",
@@ -38,60 +33,95 @@ DATABASES = {
 }
 
 def use_redis(embedding_model, llm_model):
+    start_time = time.time()
     subprocess.run(["python", os.path.join("src", "ingest_redis.py")], check=True)
-    return process_queries(search_redis.search_embeddings, search_redis.generate_rag_response, "redis", embedding_model, llm_model)
-
-def use_chroma(embedding_model, llm_model):
-    subprocess.run(["python", os.path.join("src", "ingest_chroma.py")], check=True)
-    return process_queries(search_chroma.search_embeddings, search_chroma.generate_rag_response, "chroma", embedding_model, llm_model)
-
-def use_milvus(embedding_model, llm_model):
-    subprocess.run(["python", os.path.join("src", "ingest_milvus.py")], check=True)
-    return process_queries(search_milvus.search_embeddings, search_milvus.generate_rag_response, "milvus", embedding_model, llm_model)
-
-def process_queries(search_func, response_func, db_name, embedding_model, llm_model):
+    ingesting_time = time.time() - start_time
     all_rows = []
     
-    def process_query(query):
+    for query in queries:
         try:
             start_time = time.time()
-            context_results = search_func(query, embedding_model)
-            response = response_func(query, context_results, llm_model)
+            context_results = search_redis.search_embeddings(query, embedding_model)
+            response = search_redis.generate_rag_response(query, context_results, embedding_model)
             elapsed_time = time.time() - start_time
-            logging.info(f"{db_name} | {query} | {elapsed_time:.4f}s")
-            return [db_name, embedding_model[0], llm_model, query, elapsed_time, response]
+
+            print(f"Elapsed time: {elapsed_time:.4f} seconds")
+            all_rows.append(["redis", embedding_model, llm_model, query, elapsed_time, response, ingesting_time])
         except Exception as e:
-            logging.error(f"Error processing query '{query}' in {db_name}: {e}")
-            return [db_name, embedding_model[0], llm_model, query, None, "ERROR"]
-    
-    with ThreadPoolExecutor() as executor:
-        all_rows = list(executor.map(process_query, queries))
-    
+            print(f"Error processing query '{query}' in Redis: {e}")
+            all_rows.append(["redis", embedding_model, llm_model, query, None, "ERROR", ingesting_time])
+
     return all_rows
+
+
+def use_chroma(embedding_model, llm_model):
+    start_time = time.time()
+    subprocess.run(["python", os.path.join("src", "ingest_chroma.py")], check=True)
+    ingesting_time = time.time() - start_time
+    all_rows = []
+
+    for query in queries:
+        try:
+            start_time = time.time()
+            context_results = search_chroma.search_embeddings(query)
+            response = search_chroma.generate_rag_response(query, context_results, llm_model)
+            elapsed_time = time.time() - start_time
+
+            print(f"Elapsed time: {elapsed_time:.4f} seconds")
+            all_rows.append(["chroma", embedding_model, llm_model, query, elapsed_time, response, ingesting_time])
+        except Exception as e:
+            print(f"Error processing query '{query}' in Chroma: {e}")
+            all_rows.append(["chroma", embedding_model, llm_model, query, None, "ERROR", ingesting_time])
+
+    return all_rows
+
+def use_milvus(embedding_model, llm_model):
+    start_time = time.time()
+    subprocess.run(["python", os.path.join("src", "ingest_milvus.py")], check=True)
+    ingesting_time = time.time() - start_time
+    all_rows = []
+
+    for query in queries:
+        try:
+            start_time = time.time()
+            context_results = search_milvus.search_embeddings(query, embedding_model)
+            response = search_milvus.generate_rag_response(query, context_results)
+            elapsed_time = time.time() - start_time
+
+            print(f"Elapsed time: {elapsed_time:.4f} seconds")
+            all_rows.append(["milvus", embedding_model, llm_model, query, elapsed_time, response, ingesting_time])
+        except Exception as e:
+            print(f"Error processing query '{query}' in Milvus: {e}")
+            all_rows.append(["milvus", embedding_model, llm_model, query, None, "ERROR", ingesting_time])
+
+    return all_rows
+
 
 def main():
     all_results = []
-    
+
     try:
-        for embed_name, embed_model in EMBEDDING_MODELS.items():
+        for embed_name, (embed_model, vector_dim) in EMBEDDING_MODELS.items():
             for llm_name, llm_model in LLM_MODELS.items():
-                os.environ["EMBEDDING_MODEL"] = embed_model[0]
+                os.environ["EMBEDDING_MODEL"] = embed_model
                 os.environ["LLM_MODEL"] = llm_model
-                os.environ["VECTOR_DIM"] = str(embed_model[1])
-                
-                logging.info(f"\nRunning with Embedding Model: {embed_name} and LLM: {llm_name}")
-                
-                all_results.extend(use_chroma(embed_model, llm_model))
-                all_results.extend(use_redis(embed_model, llm_model))
-                all_results.extend(use_milvus(embed_model, llm_model))
-    
+                os.environ["VECTOR_DIM"] = str(vector_dim)
+
+                print(f"\nRunning with Embedding Model: {embed_name} ({embed_model}) and LLM: {llm_name} ({llm_model})")
+
+                chroma_results = use_chroma(embed_model, llm_model)
+                redis_results = use_redis(embed_model, llm_model)
+
+                all_results.extend(redis_results + chroma_results)
+
     except Exception as e:
-        logging.error(f"Unexpected error: {e}")
-    
+        print(f"Unexpected error: {e}")
+
     finally:
+        # Ensure CSV is always saved even if an error occurs
         df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Response"])
         df.to_csv("results.csv", index=False)
-        logging.info("Results saved to results.csv")
+        print("Results saved to results.csv")
 
 if __name__ == "__main__":
     main()
