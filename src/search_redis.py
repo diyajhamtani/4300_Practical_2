@@ -13,7 +13,7 @@ from redis.commands.search.field import VectorField, TextField
 redis_client = redis.StrictRedis(host="localhost", port=6379, decode_responses=True)
 redis_client = redis.StrictRedis(host="localhost", port=6380, decode_responses=True)
 
-VECTOR_DIM = 768
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"

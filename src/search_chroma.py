@@ -10,7 +10,7 @@ import ollama
 db = chromadb.PersistentClient(path="./chroma_db")
 collection = db.get_or_create_collection(name="embedding_index")
 
-VECTOR_DIM = 768
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 
 # Get embedding model from environment variable
 CURRENT_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")

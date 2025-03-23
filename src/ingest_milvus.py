@@ -8,7 +8,7 @@ import argparse
 import ollama  
 from pymilvus import Collection, FieldSchema, DataType, CollectionSchema, utility
 
-VECTOR_DIM = 384
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 COLLECTION_NAME = "embedding_co" \
 "llection"
 DISTANCE_METRIC = "COSINE"

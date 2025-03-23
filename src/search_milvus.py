@@ -5,7 +5,7 @@ from pymilvus import connections, Collection, utility
 from sentence_transformers import SentenceTransformer
 
 
-VECTOR_DIM = 384
+VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_collection"
 DISTANCE_METRIC = "COSINE"
 LLM_MODEL = os.getenv("LLM_MODEL", "mistral:latest")
