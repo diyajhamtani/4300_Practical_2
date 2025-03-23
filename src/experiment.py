@@ -1,4 +1,5 @@
 import os
+import psutil
 import subprocess
 import time
 import pandas as pd
@@ -55,10 +56,12 @@ def process_queries(search_func, response_func, db_name, embedding_model, llm_mo
     def process_query(query):
         try:
             start_time = time.time()
-            context_results = search_func(query, embedding_model)
+            start_memory = get_memory()
+            context_results = search_func(query, embedding_model[0])
             response = response_func(query, context_results, llm_model)
             elapsed_time = time.time() - start_time
-            logging.info(f"{db_name} | {query} | {elapsed_time:.4f}s")
+            memory = get_memory_difference(start_memory, f"{db_name}, {embedding_model}, {llm_model}")
+            logging.info(f"{db_name} | {query} | Time: {elapsed_time:.4f}s | Memory: {memory:.2f} MB")
             return [db_name, embedding_model[0], llm_model, query, elapsed_time, response]
         except Exception as e:
             logging.error(f"Error processing query '{query}' in {db_name}: {e}")
@@ -68,6 +71,16 @@ def process_queries(search_func, response_func, db_name, embedding_model, llm_mo
         all_rows = list(executor.map(process_query, queries))
     
     return all_rows
+
+def get_memory():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / (1024 * 1024) # convert to mb
+
+def get_memory_difference(starting_memory, label=""):
+    ending_memory = get_memory()
+    difference = ending_memory - starting_memory
+    logging.info(f"[{label}] Memory Difference: {difference} MB")
+    return difference
 
 def main():
     all_results = []

@@ -8,6 +8,9 @@ import argparse
 import ollama  
 from pymilvus import Collection, FieldSchema, DataType, CollectionSchema, utility
 
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+print(f"Using Embedding Model: {EMBEDDING_MODEL}")
+
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 COLLECTION_NAME = "embedding_co" \
 "llection"
@@ -49,7 +52,7 @@ def create_milvus_collection():
     collection = Collection(COLLECTION_NAME, schema)
     print("Milvus collection created successfully.")
 
-def get_embedding(text: str, model: str) -> list:
+def get_embedding(text: str, model: str = EMBEDDING_MODEL) -> list:
     if "sentence-transformers" in model or "instructor" in model:
         transformer = SentenceTransformer(model)
         return transformer.encode(text).tolist()
@@ -97,7 +100,7 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
         chunks.append(chunk)
     return chunks
 
-def process_pdfs(data_dir, embedding_model):
+def process_pdfs(data_dir):
     for file_name in os.listdir(data_dir):
         if file_name.endswith(".pdf"):
             pdf_path = os.path.join(data_dir, file_name)
@@ -105,7 +108,7 @@ def process_pdfs(data_dir, embedding_model):
             for page_num, text in text_by_page:
                 chunks = split_text_into_chunks(text)
                 for chunk_index, chunk in enumerate(chunks):
-                    embedding = get_embedding(chunk, embedding_model)
+                    embedding = get_embedding(chunk)
                     store_embedding(
                         file=file_name,
                         page=str(page_num),
@@ -115,9 +118,9 @@ def process_pdfs(data_dir, embedding_model):
                     )
             print(f" -----> Processed {file_name}")
 
-def query_milvus(query_text: str, embedding_model):
+def query_milvus(query_text: str):
     # Prepare the query
-    embedding = get_embedding(query_text, embedding_model)
+    embedding = get_embedding(query_text)
     
     collection = Collection(COLLECTION_NAME)
     collection.load()
@@ -145,11 +148,11 @@ def main():
     create_milvus_collection()
 
     # Process PDFs and store embeddings in Milvus
-    process_pdfs(os.path.join("data"), EMBEDDING_MODELS["minilm"])
+    process_pdfs(os.path.join("data"))
     print("\n---Done processing PDFs---\n")
 
     # Query Milvus to find similar documents
-    query_milvus("What is the capital of France?", EMBEDDING_MODELS["minilm"])
+    query_milvus("What is the capital of France?")
 
 if __name__ == "__main__":
     main()

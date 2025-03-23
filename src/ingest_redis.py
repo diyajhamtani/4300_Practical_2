@@ -133,9 +133,9 @@ def query_redis(query_text: str):
 def main():
     clear_redis_store()
     create_hnsw_index()
-    process_pdfs(os.path.join("data"), EMBEDDING_MODEL)
+    process_pdfs(os.path.join("data"))
     print("\n---Done processing PDFs---\n")
-    query_redis("What is the capital of France?", EMBEDDING_MODEL)
+    query_redis("What is the capital of France?")
 
 
 if __name__ == "__main__":
