@@ -9,6 +9,7 @@ import re
 # Initialize ChromaDB client
 db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
 collection = db.get_or_create_collection(name="embedding_index")
+PREPROCESSING = os.getenv("PREPROCESSING", TRUE)
 
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 
@@ -68,10 +69,9 @@ def process_pdfs(data_dir):
 
             for page_num, text in text_by_page:
                 # Preprocess text here before chunking
-                preprocessed_text = preprocess_text(text)
-                chunks = split_text_into_chunks(preprocessed_text)
-
-                #chunks = split_text_into_chunks(text)
+                if PREPROCESSING:
+                    text = preprocess_text(text)
+                chunks = split_text_into_chunks(text)
 
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
