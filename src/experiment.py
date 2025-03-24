@@ -43,7 +43,7 @@ def get_memory_difference(starting_memory, label=""):
     print(f"[{label}] Memory Difference: {difference} MB")
     return difference
 
-def use_redis(embedding_model, llm_model):
+def use_redis(embedding_model, llm_model, preprocessing):
     start_time = time.time()
     subprocess.run(["python", os.path.join("src", "ingest_redis.py")], check=True)
     ingesting_time = time.time() - start_time
@@ -68,7 +68,7 @@ def use_redis(embedding_model, llm_model):
 
     return all_rows
 
-def use_chroma(embedding_model, llm_model):
+def use_chroma(embedding_model, llm_model, preprocessing):
     start_time = time.time()
     start_memory = get_memory()
     subprocess.run(["python", os.path.join("src", "ingest_chroma.py")], check=True)
@@ -93,7 +93,7 @@ def use_chroma(embedding_model, llm_model):
 
     return all_rows
 
-def use_milvus(embedding_model, llm_model):
+def use_milvus(embedding_model, llm_model, preprocessing):
     start_time = time.time()
     start_memory = get_memory()
     subprocess.run(["python", os.path.join("src", "ingest_milvus.py")], check=True)
@@ -121,20 +121,22 @@ def use_milvus(embedding_model, llm_model):
 
 def main():
     all_results = []
+    preprocessing = True
 
     try:
         for embed_name, (embed_model, vector_dim) in EMBEDDING_MODELS.items():
             for llm_name, llm_model in LLM_MODELS.items():
+                preprocessing = not preprocessing
                 os.environ["EMBEDDING_MODEL"] = embed_model
                 os.environ["LLM_MODEL"] = llm_model
                 os.environ["VECTOR_DIM"] = str(vector_dim)
+                os.environ["PREPROCESSING"] = preprocessing
 
                 print(f"\nRunning with Embedding Model: {embed_name} ({embed_model}) and LLM: {llm_name} ({llm_model})")
 
-                chroma_results = use_chroma(embed_model, llm_model)
-                redis_results = use_redis(embed_model, llm_model)
-
-                all_results.extend(redis_results + chroma_results)
+                all_results.extend(use_chroma(embed_model, llm_model, preprocessing))
+                all_results.extend(use_redis(embed_model, llm_model, preprocessing))
+                all_results.extend(use_milvus(embed_model, llm_model, preprocessing))
 
     except Exception as e:
         print(f"Unexpected error: {e}")
@@ -142,7 +144,7 @@ def main():
     finally:
         # Ensure CSV is always saved even if an error occurs
         df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time"])
-        df.to_csv("results.csv", index=False)
+        df.to_excel("results.xlsx", index=False)
         print("Results saved to results.csv")
 
 if __name__ == "__main__":
