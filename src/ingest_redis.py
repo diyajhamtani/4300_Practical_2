@@ -6,9 +6,10 @@ import fitz
 import ollama
 from redis.commands.search.query import Query
 from sentence_transformers import SentenceTransformer
+import re
 
 # Initialize Redis connection
-redis_client = redis.Redis(host="localhost", port=6380, db=0)
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 print(f"Using Embedding Model: {EMBEDDING_MODEL}")
@@ -83,26 +84,33 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
         chunks.append(chunk)
     return chunks
 
+def preprocess_text(text):
+    # Remove special characters (anything that is not a letter, number, or space)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    # Replace multiple spaces with a single space
+    text = re.sub(r'\s+', ' ', text)
+    # Strip leading/trailing spaces
+    text = text.strip()
+    return text
+
 def process_pdfs(data_dir):
-    """Processes all PDFs in the data directory and stores embeddings in Redis."""
     for file_name in os.listdir(data_dir):
         if file_name.endswith(".pdf"):
             pdf_path = os.path.join(data_dir, file_name)
             text_by_page = extract_text_from_pdf(pdf_path)
-
             for page_num, text in text_by_page:
-                chunks = split_text_into_chunks(text)
-
+                # Preprocess text before chunking
+                preprocessed_text = preprocess_text(text)
+                chunks = split_text_into_chunks(preprocessed_text)
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(
                         file=file_name,
                         page=str(page_num),
-                        chunk=str(chunk),
-                        embedding=embedding,
+                        chunk=chunk,
+                        embedding=embedding
                     )
-
-            print(f"Processed {file_name}")
+            print(f" -----> Processed {file_name}")
 
 def query_redis(query_text: str):
     """Searches Redis for the most relevant embeddings."""

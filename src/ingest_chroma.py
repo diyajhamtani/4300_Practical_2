@@ -4,6 +4,7 @@ import numpy as np
 import os
 import fitz
 from sentence_transformers import SentenceTransformer
+import re
 
 # Initialize ChromaDB client
 db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
@@ -49,22 +50,39 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
     chunks = [" ".join(words[i: i + chunk_size]) for i in range(0, len(words), chunk_size - overlap)]
     return chunks
 
+def preprocess_text(text):
+    # Remove special characters (anything that is not a letter, number, or space)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    # Replace multiple spaces with a single space
+    text = re.sub(r'\s+', ' ', text)
+    # Strip leading/trailing spaces
+    text = text.strip()
+    return text
+
 def process_pdfs(data_dir):
+    """Processes all PDFs in the data directory and stores embeddings in Redis."""
     for file_name in os.listdir(data_dir):
         if file_name.endswith(".pdf"):
             pdf_path = os.path.join(data_dir, file_name)
             text_by_page = extract_text_from_pdf(pdf_path)
+
             for page_num, text in text_by_page:
-                chunks = split_text_into_chunks(text)
+                # Preprocess text here before chunking
+                preprocessed_text = preprocess_text(text)
+                chunks = split_text_into_chunks(preprocessed_text)
+
+                #chunks = split_text_into_chunks(text)
+
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(
                         file=file_name,
                         page=str(page_num),
-                        chunk=chunk,
+                        chunk=str(chunk_index),
                         embedding=embedding,
                     )
-            print(f" -----> Processed {file_name}")
+
+            print(f"Processed {file_name}")
 
 def query_chroma(query_text: str, k=5):
     embedding = get_embedding(query_text)

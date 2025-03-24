@@ -79,12 +79,6 @@ def store_embedding(file: str, page: str, chunk: str, embedding: list, text: str
 )
     print(f"Stored embedding for: {chunk}")
 
-# def preprocess_text(doc):
-   
-#     text = re.sub(r"^\s*[\•\*\-\u2022]\s*", "", doc, flags=re.MULTILINE)
-#     text = re.sub(r"\s+", " ", text).strip()
-#     return text
-
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     text_by_page = []
@@ -100,13 +94,24 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
         chunks.append(chunk)
     return chunks
 
+def preprocess_text(text):
+    # Remove special characters (anything that is not a letter, number, or space)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    # Replace multiple spaces with a single space
+    text = re.sub(r'\s+', ' ', text)
+    # Strip leading/trailing spaces
+    text = text.strip()
+    return text
+
 def process_pdfs(data_dir):
     for file_name in os.listdir(data_dir):
         if file_name.endswith(".pdf"):
             pdf_path = os.path.join(data_dir, file_name)
             text_by_page = extract_text_from_pdf(pdf_path)
             for page_num, text in text_by_page:
-                chunks = split_text_into_chunks(text)
+                # Preprocess text before chunking
+                preprocessed_text = preprocess_text(text)
+                chunks = split_text_into_chunks(preprocessed_text)
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(
