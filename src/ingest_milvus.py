@@ -111,8 +111,8 @@ def process_pdfs(data_dir):
             for page_num, text in text_by_page:
                 # Preprocess text before chunking
                 if PREPROCESSING:
-                    preprocessed_text = preprocess_text(text)
-                chunks = split_text_into_chunks(preprocessed_text)
+                    text = preprocess_text(text)
+                chunks = split_text_into_chunks(text)
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(
