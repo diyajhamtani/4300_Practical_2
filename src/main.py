@@ -8,7 +8,8 @@ EMBEDDING_MODELS = {
 }
 DATABASES = {
     'redis': 'redis',
-    'chroma': 'chroma'
+    'chroma': 'chroma',
+    'milvus': 'milvus'
 }
 LLM_MODELS = {
     "mistral": "mistral:latest",
