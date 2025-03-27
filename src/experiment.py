@@ -25,7 +25,6 @@ EMBEDDING_MODELS = {
 LLM_MODELS = {
     "mistral": "mistral:latest",
     "llama2": "llama2",
-    "deepseek": "deepseek-r1"
 }
 
 DATABASES = {
@@ -129,6 +128,7 @@ def use_milvus(embedding_model, llm_model, chunk_size):
 
 def main():
     all_results = []
+    errors = []
     preprocessing = True
 
     try:
@@ -149,21 +149,24 @@ def main():
                         all_results.extend(use_redis(embed_model, llm_model, chunk_size))
                 else:
                     chunk_size = 300
-                    #all_results.extend(use_chroma(embed_model, llm_model, preprocessing, chunk_size))
-                    #all_results.extend(use_milvus(embed_model, llm_model, preprocessing, chunk_size))
+                    all_results.extend(use_chroma(embed_model, llm_model, chunk_size))
+                    all_results.extend(use_milvus(embed_model, llm_model, chunk_size))
                     all_results.extend(use_redis(embed_model, llm_model, chunk_size))
 
                 df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
-                df.to_excel(save_path, index=False)
-                print(f"Intermediate results saved to {save_path}")
-
-
+                df.to_excel("intermediate.xlsx", index=False)
+                print(f"Intermediate results saved to intermediate.xlsx")
     except Exception as e:
         print(f"Unexpected error: {e}")
+        errors.append(e)
 
     finally:
-        # Ensure CSV is always saved even if an error occurs
-        df = pd.DataFrame(all_results, columns=["Database"e, "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
+        
+        for error in errors:
+            print(error)
+
+        # get final results csv
+        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
         df.to_excel("results.xlsx", index=False)
         print("Results saved to results.csv")
 
