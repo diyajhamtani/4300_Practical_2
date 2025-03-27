@@ -63,7 +63,7 @@ def use_redis(embedding_model, llm_model, chunk_size):
             print(f"Elapsed time: {elapsed_time:.4f} seconds")
             print(f"Memory: {memory:.2f} MB")
 
-            all_rows.append(["redis", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
+            all_rows.append(["redis", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time, chunk_size])
         except Exception as e:
             print(f"Error processing query '{query}' in Redis: {e}")
             all_rows.append(["redis", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
@@ -93,7 +93,7 @@ def use_chroma(embedding_model, llm_model, chunk_size):
             print(f"Elapsed time: {elapsed_time:.4f} seconds")
             print(f"Memory: {memory:.2f} MB")
 
-            all_rows.append(["chroma", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
+            all_rows.append(["chroma", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time, chunk_size])
         except Exception as e:
             print(f"Error processing query '{query}' in Chroma: {e}")
             all_rows.append(["chroma", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
@@ -119,7 +119,7 @@ def use_milvus(embedding_model, llm_model, chunk_size):
             print(f"Elapsed time: {elapsed_time:.4f} seconds")
             print(f"Memory: {memory:.2f} MB")
 
-            all_rows.append(["milvus", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
+            all_rows.append(["milvus", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time, chunk_size])
         except Exception as e:
             print(f"Error processing query '{query}' in Milvus: {e}")
             all_rows.append(["milvus", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
@@ -159,7 +159,7 @@ def main():
 
     finally:
         # Ensure CSV is always saved even if an error occurs
-        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
+        df = pd.DataFrame(all_results, columns=["Database"e, "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
         df.to_excel("results.xlsx", index=False)
         print("Results saved to results.csv")
 
