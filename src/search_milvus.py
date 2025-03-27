@@ -4,7 +4,9 @@ import ollama
 from pymilvus import connections, Collection, utility
 from sentence_transformers import SentenceTransformer
 
-
+if "default" not in connections.list_connections():
+    connections.connect("default", host="localhost", port="19530")
+    
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_collection"
 DISTANCE_METRIC = "COSINE"
@@ -95,5 +97,4 @@ def interactive_search(embedding_model):
 
 
 if __name__ == "__main__":
-    connections.connect("default", host="localhost", port="19530")
     interactive_search(EMBEDDING_MODEL)

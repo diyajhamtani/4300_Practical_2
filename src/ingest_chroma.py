@@ -79,7 +79,7 @@ def process_pdfs(data_dir):
                     store_embedding(
                         file=file_name,
                         page=str(page_num),
-                        chunk=str(chunk_index),
+                        chunk=chunk,
                         embedding=embedding,
                     )
 

@@ -29,9 +29,9 @@ milvus_client = pymilvus.connections.connect("default", host="localhost", port="
 
 def create_milvus_collection():
 
-    # if utility.has_collection(COLLECTION_NAME):
-    #     print(f"Collection '{COLLECTION_NAME}' already exists. Dropping it...")
-    #     utility.drop_collection(COLLECTION_NAME)
+    if utility.has_collection(COLLECTION_NAME):
+        print(f"Collection '{COLLECTION_NAME}' already exists. Dropping it...")
+        utility.drop_collection(COLLECTION_NAME)
 
 
     # Define the fields for the collection
