@@ -19,7 +19,7 @@ queries = [
 EMBEDDING_MODELS = {
     "minilm": ["sentence-transformers/all-MiniLM-L6-v2", 384],
     "mpnet": ["sentence-transformers/all-mpnet-base-v2", 768],
-    "instructor": ["hkunlp/instructor-xl", 768]
+    "nomic": ["nomic-embed-text", 768]
 }
 
 LLM_MODELS = {
@@ -149,8 +149,8 @@ def main():
                         all_results.extend(use_redis(embed_model, llm_model, chunk_size))
                 else:
                     chunk_size = 300
-                    all_results.extend(use_chroma(embed_model, llm_model, preprocessing, chunk_size))
-                    all_results.extend(use_milvus(embed_model, llm_model, preprocessing, chunk_size))
+                    #all_results.extend(use_chroma(embed_model, llm_model, preprocessing, chunk_size))
+                    #all_results.extend(use_milvus(embed_model, llm_model, preprocessing, chunk_size))
                     all_results.extend(use_redis(embed_model, llm_model, chunk_size))
 
 
