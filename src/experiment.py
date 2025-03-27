@@ -153,6 +153,10 @@ def main():
                     #all_results.extend(use_milvus(embed_model, llm_model, preprocessing, chunk_size))
                     all_results.extend(use_redis(embed_model, llm_model, chunk_size))
 
+                df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
+                df.to_excel(save_path, index=False)
+                print(f"Intermediate results saved to {save_path}")
+
 
     except Exception as e:
         print(f"Unexpected error: {e}")
