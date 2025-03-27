@@ -12,9 +12,10 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM
 print(f"Using Embedding Model: {EMBEDDING_MODEL}")
 
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
-PREPROCESSING = os.getenv("PREPROCESSING", TRUE)
+PREPROCESSING = os.getenv("PREPROCESSING", True)
 COLLECTION_NAME = "embedding_collection"
 DISTANCE_METRIC = "COSINE"
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 300))
 
 # Available embedding models
 EMBEDDING_MODELS = {
@@ -112,7 +113,7 @@ def process_pdfs(data_dir):
                 # Preprocess text before chunking
                 if PREPROCESSING:
                     text = preprocess_text(text)
-                chunks = split_text_into_chunks(text)
+                chunks = split_text_into_chunks(text, chunk_size=CHUNK_SIZE)
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(

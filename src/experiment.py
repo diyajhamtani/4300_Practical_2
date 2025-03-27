@@ -6,6 +6,7 @@ import pandas as pd
 import search_chroma
 import search_redis
 import search_milvus
+import chromadb
 
 queries = [
     "What is binary search?",
@@ -43,8 +44,9 @@ def get_memory_difference(starting_memory, label=""):
     print(f"[{label}] Memory Difference: {difference} MB")
     return difference
 
-def use_redis(embedding_model, llm_model, preprocessing):
+def use_redis(embedding_model, llm_model, chunk_size):
     start_time = time.time()
+    os.environ["CHUNK_SIZE"] = str(chunk_size)
     subprocess.run(["python", os.path.join("src", "ingest_redis.py")], check=True)
     ingesting_time = time.time() - start_time
     all_rows = []
@@ -64,14 +66,19 @@ def use_redis(embedding_model, llm_model, preprocessing):
             all_rows.append(["redis", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
         except Exception as e:
             print(f"Error processing query '{query}' in Redis: {e}")
-            all_rows.append(["redis", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time])
+            all_rows.append(["redis", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
 
     return all_rows
 
-def use_chroma(embedding_model, llm_model, preprocessing):
+def use_chroma(embedding_model, llm_model, chunk_size):
+    os.environ["CHUNK_SIZE"] = str(chunk_size)
     start_time = time.time()
     start_memory = get_memory()
     subprocess.run(["python", os.path.join("src", "ingest_chroma.py")], check=True)
+    db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
+    collection = db.get_or_create_collection(name="embedding_index")
+    if collection is None:
+        raise Exception("Chroma collection not found. Ensure you have run the ingestion step first.")
     ingesting_time = time.time() - start_time
     all_rows = []
 
@@ -89,11 +96,12 @@ def use_chroma(embedding_model, llm_model, preprocessing):
             all_rows.append(["chroma", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
         except Exception as e:
             print(f"Error processing query '{query}' in Chroma: {e}")
-            all_rows.append(["chroma", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time])
+            all_rows.append(["chroma", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
 
     return all_rows
 
-def use_milvus(embedding_model, llm_model, preprocessing):
+def use_milvus(embedding_model, llm_model, chunk_size):
+    os.environ["CHUNK_SIZE"] = str(chunk_size)
     start_time = time.time()
     start_memory = get_memory()
     subprocess.run(["python", os.path.join("src", "ingest_milvus.py")], check=True)
@@ -114,7 +122,7 @@ def use_milvus(embedding_model, llm_model, preprocessing):
             all_rows.append(["milvus", embedding_model, llm_model, query, elapsed_time, memory, response, ingesting_time])
         except Exception as e:
             print(f"Error processing query '{query}' in Milvus: {e}")
-            all_rows.append(["milvus", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time])
+            all_rows.append(["milvus", embedding_model, llm_model, query, None, None, "ERROR", ingesting_time, chunk_size])
 
     return all_rows
 
@@ -130,20 +138,28 @@ def main():
                 os.environ["EMBEDDING_MODEL"] = embed_model
                 os.environ["LLM_MODEL"] = llm_model
                 os.environ["VECTOR_DIM"] = str(vector_dim)
-                os.environ["PREPROCESSING"] = preprocessing
+                os.environ["PREPROCESSING"] = str(preprocessing).lower()
 
                 print(f"\nRunning with Embedding Model: {embed_name} ({embed_model}) and LLM: {llm_name} ({llm_model})")
 
-                all_results.extend(use_chroma(embed_model, llm_model, preprocessing))
-                all_results.extend(use_redis(embed_model, llm_model, preprocessing))
-                all_results.extend(use_milvus(embed_model, llm_model, preprocessing))
+                if embed_name == "minilm" and llm_model == "mistral:latest":  
+                    chunk_sizes = [300, 1000]  
+                    for chunk_size in chunk_sizes:
+                        print(f"Running with Chunk Size: {chunk_size}")
+                        all_results.extend(use_redis(embed_model, llm_model, chunk_size))
+                else:
+                    chunk_size = 300
+                    all_results.extend(use_chroma(embed_model, llm_model, preprocessing, chunk_size))
+                    all_results.extend(use_milvus(embed_model, llm_model, preprocessing, chunk_size))
+                    all_results.extend(use_redis(embed_model, llm_model, chunk_size))
+
 
     except Exception as e:
         print(f"Unexpected error: {e}")
 
     finally:
         # Ensure CSV is always saved even if an error occurs
-        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time"])
+        df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
         df.to_excel("results.xlsx", index=False)
         print("Results saved to results.csv")
 

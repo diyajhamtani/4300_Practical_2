@@ -10,16 +10,17 @@ import re
 
 # Initialize Redis connection
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
+#redis_client = redis.Redis(host="localhost", port=6380, db=0)
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 print(f"Using Embedding Model: {EMBEDDING_MODEL}")
 
-PREPROCESSING = os.getenv("PREPROCESSING", TRUE)
+PREPROCESSING = os.getenv("PREPROCESSING", True)
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 INDEX_NAME = "embedding_index"
 DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
-
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 300))
 
 def clear_redis_store():
     print("Clearing existing Redis store...")
@@ -103,7 +104,7 @@ def process_pdfs(data_dir):
                 # Preprocess text before chunking
                 if PREPROCESSING:
                     text = preprocess_text(text)
-                chunks = split_text_into_chunks(text)
+                chunks = split_text_into_chunks(text, chunk_size=CHUNK_SIZE)
                 for chunk_index, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     store_embedding(
