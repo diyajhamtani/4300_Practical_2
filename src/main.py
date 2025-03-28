@@ -43,6 +43,7 @@ selected_llm = LLM_MODELS.get(user_choice, LLM_MODELS["mistral"])  # Default to 
 os.environ["EMBEDDING_MODEL"] = selected_model
 os.environ["LLM_MODEL"] = selected_llm
 os.environ["VECTOR_DIM"] = str(selected_model_vector_dim)
+os.environ["COLLECTION_NAME"] = "embedding_index"
 
 # Run scripts
 subprocess.run(["python", os.path.join("src", f"ingest_{selected_db}.py")])

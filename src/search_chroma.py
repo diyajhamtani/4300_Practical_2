@@ -8,7 +8,7 @@ import ollama
 
 # Initialize ChromaDB client
 db = chromadb.PersistentClient(path="./chroma_db")
-collection = db.get_or_create_collection(name="embedding_index")
+collection = db.get_or_create_collection(name=(os.getenv("COLLECTION_NAME", "embedding_index")))
 
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
 

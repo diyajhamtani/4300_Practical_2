@@ -27,11 +27,13 @@ LLM_MODELS = {
     "llama2": "llama2",
 }
 
-DATABASES = {
-    'redis': 'redis',
-    'chroma': 'chroma',
-    'milvus': 'milvus'
-}
+# DATABASES = {
+#     # 'redis': 'redis',
+#     'chroma': 'chroma',
+#     # 'milvus': 'milvus'
+# }
+
+DATABASES = ["chroma"]
 
 def get_memory():
     process = psutil.Process(os.getpid())
@@ -43,11 +45,7 @@ def get_memory_difference(starting_memory, label=""):
     print(f"[{label}] Memory Difference: {difference} MB")
     return difference
 
-def use_redis(embedding_model, llm_model, chunk_size):
-    start_time = time.time()
-    os.environ["CHUNK_SIZE"] = str(chunk_size)
-    subprocess.run(["python", os.path.join("src", "ingest_redis.py")], check=True)
-    ingesting_time = time.time() - start_time
+def use_redis(embedding_model, llm_model, chunk_size, ingesting_time):
     all_rows = []
     
     for query in queries:
@@ -55,6 +53,7 @@ def use_redis(embedding_model, llm_model, chunk_size):
             start_time = time.time()
             start_memory = get_memory()
             context_results = search_redis.search_embeddings(query, embedding_model)
+            print(context_results)
             response = search_redis.generate_rag_response(query, context_results, embedding_model)
             elapsed_time = time.time() - start_time
             memory = get_memory_difference(start_memory, f"Redis, {embedding_model}, {llm_model}")
@@ -69,21 +68,13 @@ def use_redis(embedding_model, llm_model, chunk_size):
 
     return all_rows
 
-def use_chroma(embedding_model, llm_model, chunk_size):
-    os.environ["CHUNK_SIZE"] = str(chunk_size)
-    start_time = time.time()
-    start_memory = get_memory()
-    subprocess.run(["python", os.path.join("src", "ingest_chroma.py")], check=True)
-    db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
-    collection = db.get_or_create_collection(name="embedding_index")
-    if collection is None:
-        raise Exception("Chroma collection not found. Ensure you have run the ingestion step first.")
-    ingesting_time = time.time() - start_time
+def use_chroma(embedding_model, llm_model, chunk_size, ingesting_time):
     all_rows = []
 
     for query in queries:
         try:
             start_time = time.time()
+            start_memory = get_memory()
             context_results = search_chroma.search_embeddings(query)
             response = search_chroma.generate_rag_response(query, context_results, llm_model)
             elapsed_time = time.time() - start_time
@@ -99,17 +90,13 @@ def use_chroma(embedding_model, llm_model, chunk_size):
 
     return all_rows
 
-def use_milvus(embedding_model, llm_model, chunk_size):
-    os.environ["CHUNK_SIZE"] = str(chunk_size)
-    start_time = time.time()
-    start_memory = get_memory()
-    subprocess.run(["python", os.path.join("src", "ingest_milvus.py")], check=True)
-    ingesting_time = time.time() - start_time
+def use_milvus(embedding_model, llm_model, chunk_size, ingesting_time):
     all_rows = []
 
     for query in queries:
         try:
             start_time = time.time()
+            start_memory = get_memory()
             context_results = search_milvus.search_embeddings(query, embedding_model)
             response = search_milvus.generate_rag_response(query, context_results)
             elapsed_time = time.time() - start_time
@@ -127,35 +114,53 @@ def use_milvus(embedding_model, llm_model, chunk_size):
 
 
 def main():
+    os.environ["COLLECTION_NAME"] = "embedding_index"
+
     all_results = []
     errors = []
     preprocessing = True
 
     try:
         for embed_name, (embed_model, vector_dim) in EMBEDDING_MODELS.items():
+            preprocessing = not preprocessing
+            os.environ["EMBEDDING_MODEL"] = embed_model
+            os.environ["VECTOR_DIM"] = str(vector_dim)
+            os.environ["PREPROCESSING"] = str(preprocessing).lower()
+            start_time = time.time()
+            ingesting_memory = get_memory()
+            for database in DATABASES:
+                subprocess.run(["python", os.path.join("src", f"ingest_{database}.py")], check=True)
+            ingesting_time = time.time() - start_time
+
+
             for llm_name, llm_model in LLM_MODELS.items():
-                preprocessing = not preprocessing
-                os.environ["EMBEDDING_MODEL"] = embed_model
                 os.environ["LLM_MODEL"] = llm_model
-                os.environ["VECTOR_DIM"] = str(vector_dim)
-                os.environ["PREPROCESSING"] = str(preprocessing).lower()
 
                 print(f"\nRunning with Embedding Model: {embed_name} ({embed_model}) and LLM: {llm_name} ({llm_model})")
 
-                if embed_name == "minilm" and llm_model == "mistral:latest":  
-                    chunk_sizes = [300, 1000]  
-                    for chunk_size in chunk_sizes:
-                        print(f"Running with Chunk Size: {chunk_size}")
-                        all_results.extend(use_redis(embed_model, llm_model, chunk_size))
-                else:
-                    chunk_size = 300
-                    all_results.extend(use_chroma(embed_model, llm_model, chunk_size))
-                    all_results.extend(use_milvus(embed_model, llm_model, chunk_size))
-                    all_results.extend(use_redis(embed_model, llm_model, chunk_size))
+                # if embed_name == "minilm" and llm_model == "mistral:latest":  
+                #     chunk_sizes = [300, 1000]  
+                #     for chunk_size in chunk_sizes:
+                        # os.environ["CHUNK_SIZE"] = str(chunk_size)
+
+                #         print(f"Running with Chunk Size: {chunk_size}")
+                #         all_results.extend(use_redis(embed_model, llm_model, chunk_size))
+                # else:
+
+                chunk_size = 300
+                os.environ["CHUNK_SIZE"] = str(chunk_size)
+
+                all_results.extend(use_chroma(embed_model, llm_model, chunk_size, ingesting_time))
+                # all_results.extend(use_milvus(embed_model, llm_model, chunk_size))
+                    # all_results.extend(use_redis(embed_model, llm_model, chunk_size))
 
                 df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "Chunk Size"])
                 df.to_excel("intermediate.xlsx", index=False)
                 print(f"Intermediate results saved to intermediate.xlsx")
+            
+            embed_num = list(EMBEDDING_MODELS.keys()).index(embed_name)
+            os.environ["COLLECTION_NAME"] = f"embedding_index_{embed_num}"
+
     except Exception as e:
         print(f"Unexpected error: {e}")
         errors.append(e)

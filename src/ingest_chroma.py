@@ -8,7 +8,7 @@ import re
 
 # Initialize ChromaDB client
 db = chromadb.PersistentClient(os.path.join(".", "chroma_db"))
-collection = db.get_or_create_collection(name="embedding_index")
+collection = db.get_or_create_collection(name=(os.getenv("COLLECTION_NAME", "embedding_index")))
 PREPROCESSING = os.getenv("PREPROCESSING", True)
 
 VECTOR_DIM = int(os.getenv("VECTOR_DIM", 384))
@@ -20,9 +20,10 @@ print(f"Using model: {CURRENT_MODEL}")
 
 def clear_chroma_store():
     print("Clearing existing ChromaDB store...")
-    db.delete_collection("embedding_index")
     global collection
-    collection = db.get_or_create_collection(name="embedding_index")
+    collection_ids = collection.get(ids=None)["ids"]
+    if collection_ids:
+        collection.delete(ids=collection_ids)
     print("ChromaDB store cleared.")
 
 def get_embedding(text: str, model: str = CURRENT_MODEL) -> list:
