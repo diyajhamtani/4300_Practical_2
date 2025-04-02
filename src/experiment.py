@@ -121,12 +121,12 @@ def main():
             os.environ["PREPROCESSING"] = str(preprocessing).lower()
             ingesting_time = {}
             ingesting_memory = {}
-            for database in DATABASES:
-                start_time = time.time()
-                start_ingesting_memory = get_memory()
-                subprocess.run(["python", os.path.join("src", f"ingest_{database}.py")], check=True)
-                ingesting_time[database] = time.time() - start_time
-                ingesting_memory[database] = get_memory_difference(start_ingesting_memory)
+            # for database in DATABASES:
+            #     start_time = time.time()
+            #     start_ingesting_memory = get_memory()
+            #     subprocess.run(["python", os.path.join("src", f"ingest_{database}.py")], check=True)
+            #     ingesting_time[database] = time.time() - start_time
+            #     ingesting_memory[database] = get_memory_difference(start_ingesting_memory)
 
             for llm_name, llm_model in LLM_MODELS.items():
                 os.environ["LLM_MODEL"] = llm_model
@@ -137,17 +137,26 @@ def main():
                     chunk_sizes = [300, 1000]  
                     for chunk_size in chunk_sizes:
                         os.environ["CHUNK_SIZE"] = str(chunk_size)
+                        start_time = time.time()
+                        start_ingesting_memory = get_memory()
+                        subprocess.run(["python", os.path.join("src", f"ingest_redis.py")], check=True)
+                        ingesting_time["redis"] = time.time() - start_time
+                        ingesting_memory["redis"] = get_memory_difference(start_ingesting_memory)
 
                         print(f"Running with Chunk Size: {chunk_size}")
                         all_results.extend(use_redis(embed_model, llm_model, chunk_size, ingesting_time["redis"], ingesting_memory["redis"]))
-                else:
+                    
+                    # chunk_size = 300
+                    # all_results.extend(use_chroma(embed_model, llm_model, chunk_size, ingesting_time["chroma"], ingesting_memory["chroma"]))
+                    # all_results.extend(use_milvus(embed_model, llm_model, chunk_size, ingesting_time["milvus"], ingesting_memory["milvus"]))
+                # else:
 
-                    chunk_size = 300
-                    os.environ["CHUNK_SIZE"] = str(chunk_size)
+                #     chunk_size = 300
+                #     os.environ["CHUNK_SIZE"] = str(chunk_size)
 
-                    all_results.extend(use_chroma(embed_model, llm_model, chunk_size, ingesting_time["chroma"], ingesting_memory["chroma"]))
-                    all_results.extend(use_milvus(embed_model, llm_model, chunk_size, ingesting_time["milvus"], ingesting_memory["milvus"]))
-                    all_results.extend(use_redis(embed_model, llm_model, chunk_size, ingesting_time["redis"], ingesting_memory["redis"]))
+                #     all_results.extend(use_chroma(embed_model, llm_model, chunk_size, ingesting_time["chroma"], ingesting_memory["chroma"]))
+                #     all_results.extend(use_milvus(embed_model, llm_model, chunk_size, ingesting_time["milvus"], ingesting_memory["milvus"]))
+                #     all_results.extend(use_redis(embed_model, llm_model, chunk_size, ingesting_time["redis"], ingesting_memory["redis"]))
 
                 df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "ingesting_memory", "Chunk Size"])
                 df.to_excel("intermediate.xlsx", index=False)
@@ -167,7 +176,7 @@ def main():
 
         # get final results csv
         df = pd.DataFrame(all_results, columns=["Database", "Embedding Model", "LLM Model", "Query", "Elapsed Time", "Memory", "Response", "ingesting_time", "ingesting_memory", "Chunk Size"])
-        df.to_excel("results.xlsx", index=False)
+        df.to_excel("results_accurate_chunk_size2.xlsx", index=False)
         print("Results saved to results.csv")
 
 if __name__ == "__main__":
